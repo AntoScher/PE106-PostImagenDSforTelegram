@@ -7,9 +7,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-ENV DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+# Порт по умолчанию
 ENV PORT=8000
 
-EXPOSE $PORT
+EXPOSE ${PORT}
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${PORT}"]
+# Запуск через shell-форму для подстановки PORT
+CMD uvicorn app.main:app --host 0.0.0.0 --port $PORThost", "0.0.0.0", "--port", "${PORT}"]
