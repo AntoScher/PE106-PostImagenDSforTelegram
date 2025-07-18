@@ -4,6 +4,12 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 from .generators import ContentGenerator
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+
 # Сначала создаем экземпляр приложения
 app = FastAPI(
     title="Blog Content Generator API",
