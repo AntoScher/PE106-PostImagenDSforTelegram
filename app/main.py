@@ -1,24 +1,10 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 from .generators import ContentGenerator
-from fastapi import Request
 
-@app.middleware("http")
-async def catch_exceptions(request: Request, call_next):
-    try:
-        return await call_next(request)
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={
-                "error": "Internal Server Error",
-                "details": str(e)
-            }
-        )
-
-
+# Сначала создаем экземпляр приложения
 app = FastAPI(
     title="Blog Content Generator API",
     description="API для генерации блог-постов с помощью DeepSeek AI",
@@ -34,6 +20,20 @@ app = FastAPI(
         }
     ]
 )
+
+# Middleware должен регистрироваться ПОСЛЕ создания app
+@app.middleware("http")
+async def catch_exceptions(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Internal Server Error",
+                "details": str(e)
+            }
+        )
 
 # Монтирование статических файлов
 app.mount("/static", StaticFiles(directory="static"), name="static")
