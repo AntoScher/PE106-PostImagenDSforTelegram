@@ -2,18 +2,38 @@ import os
 import time
 import requests
 from dotenv import load_dotenv
+from pathlib import Path
 import logging
 
-load_dotenv()
-logger = logging.getLogger(__name__)
+# Определяем путь к .env файлу
+env_path = Path(__file__).resolve().parent.parent / '.env'
 
+# Загружаем .env с явным указанием кодировки и обработкой BOM
+load_dotenv(dotenv_path=env_path, encoding='utf-8-sig')  # Используем utf-8-sig для обработки BOM
+
+logger = logging.getLogger(__name__)
 
 class ContentGenerator:
     def __init__(self):
+        # Для отладки: выводим путь к .env
+        logger.info(f"Loading .env from: {env_path}")
+        if env_path.exists():
+            logger.info(".env file exists")
+        else:
+            logger.error(".env file not found!")
+
+        # Получаем API ключ
         self.api_key = os.getenv("DEEPSEEK_API_KEY")
+
+        # Если ключ не найден, логируем все переменные
         if not self.api_key:
+            # Собираем все переменные окружения
+            env_vars = "\n".join([f"{k}: {v}" for k, v in os.environ.items()])
+            logger.error(f"DEEPSEEK_API_KEY not found. All environment variables:\n{env_vars}")
             raise ValueError("DEEPSEEK_API_KEY environment variable not set")
-        self.timeout = 60  # Увеличиваем таймаут до 60 секунд
+
+        logger.info(f"DeepSeek API key loaded: {self.api_key[:5]}...{self.api_key[-5:]}")
+        self.timeout = 60  # Таймаут для запросов (60 секунд)
 
     def generate_with_deepseek(self, prompt, max_tokens=1024, temperature=0.7):
         """Генерация текста через DeepSeek API с повторами"""
@@ -59,9 +79,9 @@ class ContentGenerator:
                 raise
 
     def generate_post(self, topic: str):
-        """Генерация полного поста по теме в одном запросе"""
+        """Генерация полного поста по теме"""
         try:
-            # Оптимизированный промпт для генерации всего контента в одном запросе
+            # Оптимизированный промпт для генерации всего контента
             prompt = (
                 f"Сгенерируй SEO-оптимизированный пост на тему '{topic}' со следующей структурой:\n"
                 "1. Цепляющий SEO-заголовок (не более 70 символов)\n"
@@ -96,6 +116,11 @@ class ContentGenerator:
                 meta_description = full_content.split("Мета-описание:", 1)[1].split("\n", 1)[0].strip()
             if "Контент:" in full_content:
                 post_content = full_content.split("Контент:", 1)[1].strip()
+
+            # Очистка от лишних символов
+            title = title.strip().lstrip('*# ').strip()
+            meta_description = meta_description.strip().lstrip('*# ').strip()
+            post_content = post_content.strip().lstrip('*# ').strip()
 
             return {
                 "topic": topic,
