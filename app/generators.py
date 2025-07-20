@@ -4,6 +4,8 @@ import requests
 from dotenv import load_dotenv
 from pathlib import Path
 import logging
+import base64
+from .image_generator import ImageGenerator
 
 # Определяем путь к .env файлу
 env_path = Path(__file__).resolve().parent.parent / '.env'
@@ -34,6 +36,14 @@ class ContentGenerator:
 
         logger.info(f"DeepSeek API key loaded: {self.api_key[:5]}...{self.api_key[-5:]}")
         self.timeout = 60  # Таймаут для запросов (60 секунд)
+        self.image_generator = ImageGenerator()
+
+    def generate_image_prompt(self, topic: str) -> str:
+        """Генерация промпта для создания изображения по теме"""
+        return (
+            f"High-quality illustration for a blog post about: {topic}. "
+            "Digital art, vibrant colors, detailed, professional, trending on artstation."
+        )
 
     def generate_with_deepseek(self, prompt, max_tokens=1024, temperature=0.7):
         """Генерация текста через DeepSeek API с повторами"""
@@ -78,11 +88,11 @@ class ContentGenerator:
                 logger.error(f"Ошибка сети: {str(e)}")
                 raise
 
-    def generate_post(self, topic: str):
-        """Генерация полного поста по теме"""
+    def generate_post(self, topic: str, style: str = None):
+        """Генерация поста с изображением и текстом"""
         try:
-            # Оптимизированный промпт для генерации всего контента
-            prompt = (
+            # Генерация текста поста
+            text_prompt = (
                 f"Сгенерируй SEO-оптимизированный пост на тему '{topic}' со следующей структурой:\n"
                 "1. Цепляющий SEO-заголовок (не более 70 символов)\n"
                 "2. Мета-описание длиной 120-160 символов с ключевыми словами\n"
@@ -94,7 +104,7 @@ class ContentGenerator:
                 "Контент: [здесь контент]"
             )
 
-            full_content = self.generate_with_deepseek(prompt, max_tokens=3072)
+            full_content = self.generate_with_deepseek(text_prompt, max_tokens=3072)
 
             if not full_content:
                 return {
@@ -122,11 +132,20 @@ class ContentGenerator:
             meta_description = meta_description.strip().lstrip('*# ').strip()
             post_content = post_content.strip().lstrip('*# ').strip()
 
+            # Генерация изображения
+            image_prompt = self.generate_image_prompt(topic)
+            image_io = self.image_generator.generate_image_with_text(image_prompt, title if title else topic)
+            
+            # Конвертируем изображение в base64
+            image_bytes = image_io.getvalue()
+            image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+            
             return {
                 "topic": topic,
                 "title": title if title else f"Пост на тему: {topic}",
                 "meta_description": meta_description,
-                "post_content": post_content
+                "post_content": post_content,
+                "image": image_base64
             }
 
         except Exception as e:

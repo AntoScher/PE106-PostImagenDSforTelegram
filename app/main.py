@@ -1,12 +1,13 @@
 from fastapi import FastAPI, HTTPException, Depends, Request, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from .generators import ContentGenerator
 from .telegram_bot import telegram_bot
 from . import webhooks  # Импортируем роутер вебхуков
-
 import logging
+import io
+from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,7 @@ class PostResponse(BaseModel):
     title: str
     meta_description: str
     post_content: str
+    image: Optional[str] = Field(None, description="Base64 encoded image")
 
 
 class ErrorResponse(BaseModel):
@@ -108,7 +110,7 @@ async def predefined_topics():
           response_model=PostResponse,
           responses={500: {"model": ErrorResponse}},
           tags=["Генерация"],
-          summary="Генерация поста по теме")
+          summary="Сгенерировать пост и изображение по теме")
 async def generate_post(
         request: GenerateRequest,
         background_tasks: BackgroundTasks,
@@ -125,22 +127,21 @@ async def generate_post(
             f"📝 Заголовок: {result['title']}"
         )
 
+        # Если есть изображение - отправляем в Telegram
+        if result.get("image"):
+            background_tasks.add_task(
+                telegram_bot.send_image,
+                result["image"],
+                f"🖼️ Изображение для поста: {result['title']}"
+            )
+
         return result
     except Exception as e:
         error_msg = f"Ошибка генерации: {str(e)}"
-        # Отправляем уведомление об ошибке
-        telegram_bot.send_async(
-            background_tasks,
-            f"⚠️ Ошибка генерации!\n"
-            f"Тема: {request.topic}\n"
-            f"Ошибка: {str(e)}"
-        )
+        telegram_bot.send_async(background_tasks, f"⚠️ {error_msg}")
         raise HTTPException(
             status_code=500,
-            detail={
-                "error": "Ошибка генерации контента",
-                "details": str(e)
-            }
+            detail={"error": "Ошибка генерации контента", "details": str(e)}
         )
 
 
@@ -157,6 +158,37 @@ async def test_telegram(
 
 
 # Обработка favicon
+@app.get("/image/{topic}", 
+          tags=["Генерация"], 
+          summary="Получить изображение для темы")
+async def get_image(
+    topic: str,
+    background_tasks: BackgroundTasks,
+    generator: ContentGenerator = Depends(get_content_generator)
+):
+    try:
+        # Генерация изображения
+        image_prompt = generator.generate_image_prompt(topic)
+        image_io = generator.image_generator.generate_image_with_text(image_prompt, topic)
+        
+        # Перематываем буфер в начало
+        image_io.seek(0)
+        
+        return StreamingResponse(
+            image_io,
+            media_type="image/jpeg",
+            headers={"Content-Disposition": f"attachment; filename={topic}.jpg"}
+        )
+    except Exception as e:
+        error_msg = f"Ошибка генерации изображения: {str(e)}"
+        logger.error(error_msg)
+        telegram_bot.send_async(background_tasks, f"⚠️ {error_msg}")
+        raise HTTPException(
+            status_code=500,
+            detail={"error": "Ошибка генерации изображения", "details": str(e)}
+        )
+
+
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return FileResponse("static/favicon.ico")
