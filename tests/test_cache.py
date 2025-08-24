@@ -114,6 +114,11 @@ class TestCacheDecorators:
     
     def test_cached_decorator_with_key_prefix(self):
         """Тест декоратора @cached с префиксом ключа"""
+        from app.cache import cache
+        
+        # Очищаем кэш перед тестом
+        cache.clear()
+        
         call_count = 0
         
         @cached(ttl=3600, key_prefix="test_prefix")
@@ -131,12 +136,15 @@ class TestCacheDecorators:
     def test_cache_invalidate_decorator(self):
         """Тест декоратора @cache_invalidate"""
         from app.cache import cache
+
+        # Очищаем кэш перед тестом
+        cache.clear()
         
         # Сначала добавляем данные в кэш
         cache.set("test_key_1", "value1")
         cache.set("test_key_2", "value2")
         cache.set("other_key", "value3")
-        
+
         assert cache.size() == 3
         
         @cache_invalidate(pattern="test_key")
@@ -151,6 +159,9 @@ class TestCacheDecorators:
     def test_cache_invalidate_no_pattern(self):
         """Тест декоратора @cache_invalidate без паттерна"""
         from app.cache import cache
+        
+        # Очищаем кэш перед тестом
+        cache.clear()
         
         cache.set("key1", "value1")
         cache.set("key2", "value2")

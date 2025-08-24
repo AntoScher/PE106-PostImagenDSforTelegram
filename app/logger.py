@@ -195,8 +195,9 @@ def log_security_event(event_type: str, user_id: str = None,
     extra = {
         "event_type": event_type,
         "user_id": user_id,
-        **details or {}
     }
+    if details:
+        extra.update(details)
     logger.warning(f"Security event: {event_type}", extra=extra)
 
 
@@ -207,8 +208,9 @@ def log_performance(operation: str, duration: float,
     extra = {
         "operation": operation,
         "duration": duration,
-        **details or {}
     }
+    if details:
+        extra.update(details)
     logger.info(f"Performance: {operation} took {duration:.3f}s", extra=extra)
 
 

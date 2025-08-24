@@ -5,7 +5,7 @@ from app.generators import ContentGenerator
 
 
 class TestContentGenerator:
-    @patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test_key'})
+    @patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test_key', 'STABILITY_API_KEY': 'test_stability_key'})
     def test_init_success(self):
         """Тест успешной инициализации генератора"""
         generator = ContentGenerator()
@@ -20,7 +20,7 @@ class TestContentGenerator:
 
     def test_generate_image_prompt(self):
         """Тест генерации промпта для изображения"""
-        with patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test_key'}):
+        with patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test_key', 'STABILITY_API_KEY': 'test_stability_key'}):
             generator = ContentGenerator()
             prompt = generator.generate_image_prompt("Тестовая тема")
             assert "Тестовая тема" in prompt
@@ -37,7 +37,7 @@ class TestContentGenerator:
         mock_response.raise_for_status.return_value = None
         mock_post.return_value = mock_response
 
-        with patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test_key'}):
+        with patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test_key', 'STABILITY_API_KEY': 'test_stability_key'}):
             generator = ContentGenerator()
             result = generator.generate_with_deepseek("Test prompt")
             assert result == "Generated content"
@@ -57,7 +57,7 @@ class TestContentGenerator:
             )
         ]
 
-        with patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test_key'}):
+        with patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test_key', 'STABILITY_API_KEY': 'test_stability_key'}):
             generator = ContentGenerator()
             result = generator.generate_with_deepseek("Test prompt")
             assert result == "Success"
@@ -71,7 +71,7 @@ class TestContentGenerator:
         # Все попытки заканчиваются таймаутом
         mock_post.side_effect = Timeout("Request timeout")
 
-        with patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test_key'}):
+        with patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test_key', 'STABILITY_API_KEY': 'test_stability_key'}):
             generator = ContentGenerator()
             with pytest.raises(Timeout):
                 generator.generate_with_deepseek("Test prompt")
@@ -94,7 +94,7 @@ class TestContentGenerator:
         mock_image_io.getvalue.return_value = b"fake_image_data"
         mock_image_gen.return_value = mock_image_io
 
-        with patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test_key'}):
+        with patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test_key', 'STABILITY_API_KEY': 'test_stability_key'}):
             generator = ContentGenerator()
             result = generator.generate_post("Тестовая тема")
             
@@ -109,7 +109,7 @@ class TestContentGenerator:
         """Тест обработки ошибки генерации текста"""
         mock_text_gen.return_value = None
 
-        with patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test_key'}):
+        with patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test_key', 'STABILITY_API_KEY': 'test_stability_key'}):
             generator = ContentGenerator()
             result = generator.generate_post("Тестовая тема")
             
@@ -122,7 +122,7 @@ class TestContentGenerator:
         """Тест обработки исключений при генерации"""
         mock_text_gen.side_effect = Exception("Test error")
 
-        with patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test_key'}):
+        with patch.dict(os.environ, {'DEEPSEEK_API_KEY': 'test_key', 'STABILITY_API_KEY': 'test_stability_key'}):
             generator = ContentGenerator()
             result = generator.generate_post("Тестовая тема")
             

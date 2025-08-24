@@ -109,12 +109,19 @@ class TestImageGenerator:
             assert isinstance(result, BytesIO)
 
     @patch('app.image_generator.Image.open')
-    def test_add_text_to_image_font_error(self, mock_image_open):
+    @patch('app.image_generator.ImageDraw.Draw')
+    def test_add_text_to_image_font_error(self, mock_draw, mock_image_open):
         """Тест обработки ошибки шрифта"""
         # Создаем мок изображения
         mock_img = MagicMock()
         mock_img.size = (800, 600)
         mock_img.convert.return_value = mock_img
+
+        # Создаем мок для ImageDraw
+        mock_draw_instance = MagicMock()
+        mock_draw_instance.textlength.return_value = 100  # Возвращаем число вместо MagicMock
+        mock_draw.return_value = mock_draw_instance
+
         mock_image_open.return_value = mock_img
 
         with patch.dict(os.environ, {'STABILITY_API_KEY': 'test_key'}):
