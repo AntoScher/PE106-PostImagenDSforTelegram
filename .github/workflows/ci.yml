@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
     
     - name: Clear cache
       run: |
@@ -25,18 +25,19 @@ jobs:
         rm -rf .pytest_cache || true
     
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
     
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}-
-          ${{ runner.os }}-pip-
+    # Temporarily disabled caching to debug Python version issues
+    # - name: Cache pip dependencies
+    #   uses: actions/cache@v3
+    #   with:
+    #     path: ~/.cache/pip
+    #     key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}-${{ github.sha }}
+    #     restore-keys: |
+    #       ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}-
+    #       ${{ runner.os }}-pip-
     
     - name: Install dependencies
       env:
@@ -44,6 +45,15 @@ jobs:
         STABILITY_API_KEY: test_stability_key
         SECRET_KEY: test_secret_key_for_ci
       run: |
+        echo "=== PYTHON VERSION CHECK ==="
+        echo "Expected Python version: ${{ matrix.python-version }}"
+        echo "Actual Python version:"
+        python --version
+        echo "Python location:"
+        which python
+        echo "Python executable:"
+        ls -la $(which python)
+        echo "=== CLEARING CACHE ==="
         echo "Clearing pip cache..."
         pip cache purge || true
         echo "Upgrading pip..."
@@ -52,6 +62,8 @@ jobs:
         pip install -r requirements.txt
         echo "Installing test dependencies..."
         pip install pytest-cov pytest-asyncio flake8 black isort
+        echo "=== FINAL PYTHON CHECK ==="
+        python --version
     
     - name: Lint with flake8
       env:
@@ -59,6 +71,8 @@ jobs:
         STABILITY_API_KEY: test_stability_key
         SECRET_KEY: test_secret_key_for_ci
       run: |
+        echo "Python version in lint step:"
+        python --version
         flake8 app/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 app/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
     
@@ -68,6 +82,8 @@ jobs:
         STABILITY_API_KEY: test_stability_key
         SECRET_KEY: test_secret_key_for_ci
       run: |
+        echo "Python version in black step:"
+        python --version
         black --check app/ tests/
     
     - name: Import sorting check with isort
@@ -76,6 +92,8 @@ jobs:
         STABILITY_API_KEY: test_stability_key
         SECRET_KEY: test_secret_key_for_ci
       run: |
+        echo "Python version in isort step:"
+        python --version
         isort --check-only app/ tests/
     
     - name: Run tests with pytest
@@ -116,7 +134,7 @@ jobs:
     needs: test
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
     
     - name: Clear cache
       run: |
@@ -126,7 +144,7 @@ jobs:
         rm -rf .pytest_cache || true
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v3
       with:
         python-version: 3.11
     
@@ -166,7 +184,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
     
     - name: Clear cache
       run: |
